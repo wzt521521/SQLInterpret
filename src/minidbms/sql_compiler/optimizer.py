@@ -1,8 +1,11 @@
-"""Rule-based logical plan optimizer skeleton. Implementation owner: zby."""
-
+"""Apply the C++ optimizer to shared Python plans."""
 from minidbms.common.plans import PlanNode
+from ._native import Writer, request
+from ._convert import write_plan, plan
 
 
 class PlanOptimizer:
-    def optimize(self, plan: PlanNode) -> PlanNode:
-        raise NotImplementedError("zby: implement constant folding and boolean simplification")
+    def optimize(self, node: PlanNode) -> PlanNode:
+        writer = Writer()
+        write_plan(writer, node)
+        return plan(request("optimize", writer))

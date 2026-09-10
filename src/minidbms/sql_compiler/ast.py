@@ -1,13 +1,16 @@
-"""Statement AST skeleton. Implementation owner: zby."""
+"""Python statement views of the authoritative C++ AST."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
-from minidbms.common.expressions import Expression, ScalarValue
+from minidbms.common.expressions import Expression
 from minidbms.common.types import ColumnDef, SourceLocation
 
 
+@dataclass(frozen=True, slots=True, kw_only=True)
 class Statement:
-    """Marker base class for SQL statement nodes."""
+    """Source preserves locations for native binding; native contains type metadata."""
+    source: str = field(default="", repr=False, compare=False)
+    native: dict = field(default_factory=dict, repr=False, compare=False)
 
 
 @dataclass(frozen=True, slots=True)
@@ -21,7 +24,7 @@ class CreateTableStmt(Statement):
 class InsertStmt(Statement):
     table_name: str
     columns: tuple[str, ...]
-    values: tuple[ScalarValue, ...]
+    values: tuple[Expression, ...]
     location: SourceLocation
 
 

@@ -18,6 +18,10 @@ minidb = "minidbms.cli.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+exclude = ["minidbms.sql_compiler.native*"]
+
+[tool.setuptools.package-data]
+"minidbms.sql_compiler" = ["native/CMakeLists.txt", "native/build.ps1", "native/app/*.cc", "native/app/*.h", "native/include/minisql/*.h", "native/src/*.cc"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
