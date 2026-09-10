@@ -1,0 +1,418 @@
+[
+  {
+    "sql": "CREATE TABLE example(id INT, name VARCHAR);",
+    "plan_before": {
+      "node": "CreateTablePlan",
+      "schema": {
+        "table_name": "example",
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INT"
+          },
+          {
+            "name": "name",
+            "data_type": "VARCHAR"
+          }
+        ]
+      }
+    },
+    "plan_after": {
+      "node": "CreateTablePlan",
+      "schema": {
+        "table_name": "example",
+        "columns": [
+          {
+            "name": "id",
+            "data_type": "INT"
+          },
+          {
+            "name": "name",
+            "data_type": "VARCHAR"
+          }
+        ]
+      }
+    }
+  },
+  {
+    "sql": "INSERT INTO student(age,name,id) VALUES(10+8,'Alice',1);",
+    "plan_before": {
+      "node": "InsertPlan",
+      "table_name": "student",
+      "columns": [
+        "id",
+        "name",
+        "age"
+      ],
+      "values": [
+        {
+          "node": "LiteralExpr",
+          "value": 1,
+          "data_type": "INT",
+          "location": {
+            "line": 1,
+            "column": 54
+          }
+        },
+        {
+          "node": "LiteralExpr",
+          "value": "Alice",
+          "data_type": "VARCHAR",
+          "location": {
+            "line": 1,
+            "column": 46
+          }
+        },
+        {
+          "node": "BinaryExpr",
+          "op": "+",
+          "left": {
+            "node": "LiteralExpr",
+            "value": 10,
+            "data_type": "INT",
+            "location": {
+              "line": 1,
+              "column": 41
+            }
+          },
+          "right": {
+            "node": "LiteralExpr",
+            "value": 8,
+            "data_type": "INT",
+            "location": {
+              "line": 1,
+              "column": 44
+            }
+          },
+          "data_type": "INT",
+          "location": {
+            "line": 1,
+            "column": 43
+          }
+        }
+      ]
+    },
+    "plan_after": {
+      "node": "InsertPlan",
+      "table_name": "student",
+      "columns": [
+        "id",
+        "name",
+        "age"
+      ],
+      "values": [
+        {
+          "node": "LiteralExpr",
+          "value": 1,
+          "data_type": "INT",
+          "location": {
+            "line": 1,
+            "column": 54
+          }
+        },
+        {
+          "node": "LiteralExpr",
+          "value": "Alice",
+          "data_type": "VARCHAR",
+          "location": {
+            "line": 1,
+            "column": 46
+          }
+        },
+        {
+          "node": "LiteralExpr",
+          "value": 18,
+          "data_type": "INT",
+          "location": {
+            "line": 1,
+            "column": 43
+          }
+        }
+      ]
+    }
+  },
+  {
+    "sql": "SELECT id,name FROM student WHERE TRUE AND age>10+8;",
+    "plan_before": {
+      "node": "ProjectPlan",
+      "columns": [
+        "id",
+        "name"
+      ],
+      "column_indices": [
+        0,
+        1
+      ],
+      "child": {
+        "node": "FilterPlan",
+        "predicate": {
+          "node": "BinaryExpr",
+          "op": "AND",
+          "left": {
+            "node": "LiteralExpr",
+            "value": true,
+            "data_type": "BOOL",
+            "location": {
+              "line": 1,
+              "column": 35
+            }
+          },
+          "right": {
+            "node": "BinaryExpr",
+            "op": ">",
+            "left": {
+              "node": "IdentifierExpr",
+              "name": "age",
+              "table_name": "student",
+              "column_index": 2,
+              "data_type": "INT",
+              "location": {
+                "line": 1,
+                "column": 44
+              }
+            },
+            "right": {
+              "node": "BinaryExpr",
+              "op": "+",
+              "left": {
+                "node": "LiteralExpr",
+                "value": 10,
+                "data_type": "INT",
+                "location": {
+                  "line": 1,
+                  "column": 48
+                }
+              },
+              "right": {
+                "node": "LiteralExpr",
+                "value": 8,
+                "data_type": "INT",
+                "location": {
+                  "line": 1,
+                  "column": 51
+                }
+              },
+              "data_type": "INT",
+              "location": {
+                "line": 1,
+                "column": 50
+              }
+            },
+            "data_type": "BOOL",
+            "location": {
+              "line": 1,
+              "column": 47
+            }
+          },
+          "data_type": "BOOL",
+          "location": {
+            "line": 1,
+            "column": 40
+          }
+        },
+        "child": {
+          "node": "SeqScanPlan",
+          "table_name": "student",
+          "schema": {
+            "table_name": "student",
+            "columns": [
+              {
+                "name": "id",
+                "data_type": "INT"
+              },
+              {
+                "name": "name",
+                "data_type": "VARCHAR"
+              },
+              {
+                "name": "age",
+                "data_type": "INT"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "plan_after": {
+      "node": "ProjectPlan",
+      "columns": [
+        "id",
+        "name"
+      ],
+      "column_indices": [
+        0,
+        1
+      ],
+      "child": {
+        "node": "FilterPlan",
+        "predicate": {
+          "node": "BinaryExpr",
+          "op": ">",
+          "left": {
+            "node": "IdentifierExpr",
+            "name": "age",
+            "table_name": "student",
+            "column_index": 2,
+            "data_type": "INT",
+            "location": {
+              "line": 1,
+              "column": 44
+            }
+          },
+          "right": {
+            "node": "LiteralExpr",
+            "value": 18,
+            "data_type": "INT",
+            "location": {
+              "line": 1,
+              "column": 50
+            }
+          },
+          "data_type": "BOOL",
+          "location": {
+            "line": 1,
+            "column": 47
+          }
+        },
+        "child": {
+          "node": "SeqScanPlan",
+          "table_name": "student",
+          "schema": {
+            "table_name": "student",
+            "columns": [
+              {
+                "name": "id",
+                "data_type": "INT"
+              },
+              {
+                "name": "name",
+                "data_type": "VARCHAR"
+              },
+              {
+                "name": "age",
+                "data_type": "INT"
+              }
+            ]
+          }
+        }
+      }
+    }
+  },
+  {
+    "sql": "DELETE FROM student WHERE id=1;",
+    "plan_before": {
+      "node": "DeletePlan",
+      "table_name": "student",
+      "child": {
+        "node": "FilterPlan",
+        "predicate": {
+          "node": "BinaryExpr",
+          "op": "=",
+          "left": {
+            "node": "IdentifierExpr",
+            "name": "id",
+            "table_name": "student",
+            "column_index": 0,
+            "data_type": "INT",
+            "location": {
+              "line": 1,
+              "column": 27
+            }
+          },
+          "right": {
+            "node": "LiteralExpr",
+            "value": 1,
+            "data_type": "INT",
+            "location": {
+              "line": 1,
+              "column": 30
+            }
+          },
+          "data_type": "BOOL",
+          "location": {
+            "line": 1,
+            "column": 29
+          }
+        },
+        "child": {
+          "node": "SeqScanPlan",
+          "table_name": "student",
+          "schema": {
+            "table_name": "student",
+            "columns": [
+              {
+                "name": "id",
+                "data_type": "INT"
+              },
+              {
+                "name": "name",
+                "data_type": "VARCHAR"
+              },
+              {
+                "name": "age",
+                "data_type": "INT"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "plan_after": {
+      "node": "DeletePlan",
+      "table_name": "student",
+      "child": {
+        "node": "FilterPlan",
+        "predicate": {
+          "node": "BinaryExpr",
+          "op": "=",
+          "left": {
+            "node": "IdentifierExpr",
+            "name": "id",
+            "table_name": "student",
+            "column_index": 0,
+            "data_type": "INT",
+            "location": {
+              "line": 1,
+              "column": 27
+            }
+          },
+          "right": {
+            "node": "LiteralExpr",
+            "value": 1,
+            "data_type": "INT",
+            "location": {
+              "line": 1,
+              "column": 30
+            }
+          },
+          "data_type": "BOOL",
+          "location": {
+            "line": 1,
+            "column": 29
+          }
+        },
+        "child": {
+          "node": "SeqScanPlan",
+          "table_name": "student",
+          "schema": {
+            "table_name": "student",
+            "columns": [
+              {
+                "name": "id",
+                "data_type": "INT"
+              },
+              {
+                "name": "name",
+                "data_type": "VARCHAR"
+              },
+              {
+                "name": "age",
+                "data_type": "INT"
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+]
