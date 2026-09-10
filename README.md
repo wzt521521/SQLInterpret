@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # MiniDBMS
 
 大型平台软件设计实习项目骨架。本项目由 SQL 编译器、页式存储系统和数据库引擎三个模块组成。
@@ -51,3 +52,7 @@ feature/database-engine-wzy
 ```
 
 请勿直接向 `main` 分支提交业务功能。详细职责、验收条件和模块对接方式参见 `docs/实验分工.md` 与 `docs/api_contract.md`。
+=======
+# SQLInterpret
+sqlInterpret
+>>>>>>> eca81e2ba38da85bf838a03971158b251f47bd1f
