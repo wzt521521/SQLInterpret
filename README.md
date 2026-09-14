@@ -8,7 +8,7 @@
 | --- | --- | --- | --- |
 | SQL 编译器 | zby | `src/minidbms/sql_compiler/` | C++17 核心、Python 适配及独立验收测试 |
 | 页式存储与缓存 | wzt | `src/minidbms/storage/` | 页文件、Buffer Pool 与统一 StorageManager 已实现并有独立测试；待 wzy 的真实 Catalog 联调 |
-| 数据库引擎、CLI 与集成 | wzy | `src/minidbms/engine/`、`src/minidbms/cli/` | 初始骨架，待实现 |
+| 数据库引擎、CLI 与集成 | wzy | `src/minidbms/engine/`、`src/minidbms/cli/` | Catalog、行页、六类 Plan、CLI 和端到端测试已实现 |
 
 zby 的原 C++ 文件保留在 `src/minidbms/sql_compiler/native/`，通过适配层输出
 `common/` 中已有的 Python Plan 和 Expression；其他成员可继续使用现有 Python 接口。
@@ -50,8 +50,33 @@ src/minidbms/sql_compiler/native/build/minisql_cli --file tests/e2e_demo.sql --f
 src/minidbms/sql_compiler/native/build/minisql_cli --ll1
 ```
 
-独立 CLI 展示 Token、AST、绑定 AST、优化前后 Plan；只记录临时表结构，不执行行操作。
-根项目 `minidb` 仍是 wzy 的安装检查入口，完整数据库及持久化有待后续联调。
+独立编译器 CLI 展示 Token、AST、绑定 AST、优化前后 Plan；其临时 Catalog 不执行行操作。完整数据库通过下方的 `python -m minidbms` 或 `minidb` 运行。
+
+## 运行完整 MiniDBMS
+
+支持 `CREATE TABLE`、`INSERT`、`SELECT`（可带 WHERE）、`DELETE`（可带 WHERE），数据类型为有符号 64 位 `INT` 和 `VARCHAR`，支持比较、算术、`AND`、`OR`、`NOT`、括号。表结构、数据和删除标记在正常关闭后持久化。
+
+```text
+python -m minidbms --db demo.db
+MiniDB > CREATE TABLE student(id INT, name VARCHAR, age INT);
+MiniDB > INSERT INTO student VALUES(1, 'Alice', 20);
+MiniDB > SELECT id, name FROM student WHERE age >= 18;
+MiniDB > DELETE FROM student WHERE id = 1;
+MiniDB > stats
+MiniDB > exit
+```
+
+可以使用 `--file tests/e2e_demo.sql` 运行固定演示，`--buffer-capacity 2 --replacement-policy FIFO --cache-log --stats` 查看淘汰日志与统计。`exit`/`quit` 会刷新脏页并关闭文件；再次指定相同 `--db` 路径可验证持久化。错误以 `阶段:错误码:原因` 显示，CLI 会继续接收后续 SQL。数据库 API 示例：
+
+```python
+from minidbms.engine import Database
+
+with Database("demo.db", buffer_capacity=2) as db:
+    results = db.execute("CREATE TABLE t(id INT); INSERT INTO t VALUES(1); SELECT * FROM t;")
+    print(results[-1].rows)  # [[1]]
+```
+
+`python examples/e2e_demo.py` 会在临时目录里运行两个独立进程，完成四类 SQL、重启查询和编译器输出展示；完整结果见[演示记录](docs/e2e_demo_result.md)。引擎页格式、Catalog 根页和异常边界见[数据库引擎设计](docs/database_engine_design.md)。本项目不实现事务、WAL、并发控制或突然断电后的崩溃恢复。
 
 ## 存储模块使用与验证
 
@@ -71,6 +96,7 @@ with StorageManager("demo.db", buffer_capacity=2, replacement_policy="LRU") as s
 
 ```text
 python -m pytest tests/test_storage.py -q
+python -m pytest tests/test_db.py -q
 python -m pytest -q
 python examples/storage_demo.py
 ```

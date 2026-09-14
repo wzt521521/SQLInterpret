@@ -1,5 +1,6 @@
-"""Database execution and catalog module owned by wzy."""
+"""Persistent database execution, catalog and orchestration API."""
 
+from .database import Database
 from .executor import Executor
 
-__all__ = ["Executor"]
+__all__ = ["Database", "Executor"]
