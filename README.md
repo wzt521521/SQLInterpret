@@ -7,7 +7,7 @@
 | 模块 | 负责人 | 目录 | 状态 |
 | --- | --- | --- | --- |
 | SQL 编译器 | zby | `src/minidbms/sql_compiler/` | C++17 核心、Python 适配及独立验收测试 |
-| 页式存储与缓存 | wzt | `src/minidbms/storage/` | 初始骨架，待实现 |
+| 页式存储与缓存 | wzt | `src/minidbms/storage/` | 页文件、Buffer Pool 与统一 StorageManager 已实现并有独立测试；待 wzy 的真实 Catalog 联调 |
 | 数据库引擎、CLI 与集成 | wzy | `src/minidbms/engine/`、`src/minidbms/cli/` | 初始骨架，待实现 |
 
 zby 的原 C++ 文件保留在 `src/minidbms/sql_compiler/native/`，通过适配层输出
@@ -52,6 +52,31 @@ src/minidbms/sql_compiler/native/build/minisql_cli --ll1
 
 独立 CLI 展示 Token、AST、绑定 AST、优化前后 Plan；只记录临时表结构，不执行行操作。
 根项目 `minidb` 仍是 wzy 的安装检查入口，完整数据库及持久化有待后续联调。
+
+## 存储模块使用与验证
+
+`StorageManager` 只接受页号与 `bytes`，页大小固定为 4096 字节。短数据尾部补零；
+可在构造时选择 `LRU` 或 `FIFO` 和缓存容量。退出上下文时会刷新脏页并关闭文件。
+
+```python
+from minidbms.storage import StorageManager
+
+with StorageManager("demo.db", buffer_capacity=2, replacement_policy="LRU") as storage:
+    page_id = storage.allocate_page()
+    storage.write_page(page_id, b"hello")
+    assert storage.read_page(page_id).startswith(b"hello")
+    print(storage.stats())
+    storage.flush_all()
+```
+
+```text
+python -m pytest tests/test_storage.py -q
+python -m pytest -q
+python examples/storage_demo.py
+```
+
+演示脚本只在系统临时目录创建数据库文件。文件格式、错误码、接口交接与
+[LRU/FIFO 演示日志](docs/storage_demo.md)见[存储设计说明](docs/storage_design.md)。
 
 详细说明：[编译器设计及对接](docs/sql_compiler_design.md)、[文法](docs/grammar.md)、
 [固定计划样例](docs/sql_plan_examples.json)、[实验分工](docs/实验分工.md)、[公共协议](docs/api_contract.md)。

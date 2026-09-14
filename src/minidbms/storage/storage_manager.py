@@ -1,11 +1,19 @@
-"""Public storage facade skeleton. Implementation owner: wzt."""
+"""Public page-storage facade used by the database engine."""
+
+from __future__ import annotations
 
 from pathlib import Path
+from threading import RLock
 
+from .buffer import BufferPool
+from .errors import StorageError
+from .file_manager import FileManager
 from .page import PAGE_SIZE
 
 
 class StorageManager:
+    """Own a database file and its cache through the shared page/bytes API."""
+
     PAGE_SIZE = PAGE_SIZE
 
     def __init__(
@@ -15,29 +23,68 @@ class StorageManager:
         replacement_policy: str = "LRU",
     ) -> None:
         self.db_path = Path(db_path)
-        self.buffer_capacity = buffer_capacity
-        self.replacement_policy = replacement_policy.upper()
+        self._lock = RLock()
+        self._closed = False
+        self._file_manager = FileManager(self.db_path)
+        try:
+            self._buffer_pool = BufferPool(
+                buffer_capacity, replacement_policy, self._file_manager
+            )
+        except Exception:
+            self._file_manager.close()
+            raise
 
     def allocate_page(self) -> int:
-        raise NotImplementedError("wzt: implement page allocation")
+        with self._lock:
+            self._ensure_open()
+            return self._file_manager.allocate_page()
 
     def free_page(self, page_id: int) -> None:
-        raise NotImplementedError("wzt: implement page release")
+        with self._lock:
+            self._ensure_open()
+            self._buffer_pool.free_page(page_id)
 
     def read_page(self, page_id: int) -> bytes:
-        raise NotImplementedError("wzt: implement buffered page reads")
+        with self._lock:
+            self._ensure_open()
+            return self._buffer_pool.read_page(page_id)
 
     def write_page(self, page_id: int, data: bytes) -> None:
-        raise NotImplementedError("wzt: implement buffered page writes")
+        with self._lock:
+            self._ensure_open()
+            self._buffer_pool.write_page(page_id, data)
 
     def flush_page(self, page_id: int) -> None:
-        raise NotImplementedError("wzt: implement single-page flush")
+        with self._lock:
+            self._ensure_open()
+            self._buffer_pool.flush_page(page_id)
 
     def flush_all(self) -> None:
-        raise NotImplementedError("wzt: implement full buffer flush")
+        with self._lock:
+            self._ensure_open()
+            self._buffer_pool.flush_all()
 
     def stats(self) -> dict[str, int]:
-        raise NotImplementedError("wzt: implement buffer statistics")
+        with self._lock:
+            self._ensure_open()
+            return self._buffer_pool.stats()
 
     def close(self) -> None:
-        raise NotImplementedError("wzt: implement safe storage close")
+        with self._lock:
+            if self._closed:
+                return
+            self._buffer_pool.flush_all()
+            self._file_manager.close()
+            self._closed = True
+
+    def __enter__(self) -> StorageManager:
+        with self._lock:
+            self._ensure_open()
+            return self
+
+    def __exit__(self, exc_type: object, exc: object, traceback: object) -> None:
+        self.close()
+
+    def _ensure_open(self) -> None:
+        if self._closed:
+            raise StorageError("STORAGE_CLOSED", "storage manager is closed")
