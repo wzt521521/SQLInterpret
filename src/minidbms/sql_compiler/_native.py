@@ -32,7 +32,8 @@ def request(operation, writer):
     executable = Path(os.environ.get("MINISQL_BRIDGE", default))
     try:
         result = subprocess.run([str(executable), operation], input=bytes(writer.data),
-                                capture_output=True, timeout=30)
+                                capture_output=True, timeout=30,
+                                creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0)
     except FileNotFoundError as error:
         raise CompilerError(ErrorStage.EXECUTION, "NATIVE_COMPILER_NOT_FOUND",
                             "Run python -m minidbms.sql_compiler.build_native, or set MINISQL_BRIDGE.") from error
