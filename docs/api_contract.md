@@ -14,6 +14,7 @@
 - wzy 提供正式且持久化的 CatalogManager。
 - zby 只通过 CatalogView 查询表是否存在以及表结构。
 - CREATE 编译阶段不修改 Catalog，执行成功后再由 wzy 持久化。
+- Catalog 固定入口是逻辑页 0，由 wzy 在新库中首先分配；wzt 的文件头不保存 Catalog 根页号。重启时通过 `StorageManager.read_page(0)` 读取，页内容格式见 `database_engine_design.md`。
 
 ## 引擎到存储系统
 
