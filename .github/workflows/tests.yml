@@ -5,7 +5,7 @@ on:
   pull_request:
 
 jobs:
-  pytest:
+  build-and-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -14,8 +14,17 @@ jobs:
           python-version: "3.11"
       - name: Install project
         run: python -m pip install -e ".[dev]"
-      - name: Run tests
-        # Ubuntu runners provide g++; the adapter intentionally never compiles on import.
+      - name: Build C++ core
         run: |
-          python -m minidbms.sql_compiler.build_native
-          pytest
+          cmake -S . -B build-cpp -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-cpp -j 2
+      - name: Run C++ tests
+        run: ctest --test-dir build-cpp --output-on-failure
+      - name: Run Python adapter and web tests
+        env:
+          MINISQL_BRIDGE: ${{ github.workspace }}/build-cpp/sql_compiler/minisql_bridge
+          MINISQL_CLI: ${{ github.workspace }}/build-cpp/sql_compiler/minisql_cli
+          MINIDB_CPP_BUILD: ${{ github.workspace }}/build-cpp
+          MINIDB_CORE_BRIDGE: ${{ github.workspace }}/build-cpp/minidb_core_bridge
+        run: |
+          pytest -q

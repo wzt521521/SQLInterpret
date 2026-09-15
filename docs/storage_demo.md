@@ -1,34 +1,20 @@
-# 容量为 2 的 Buffer Pool 演示记录
+# C++ Buffer Pool 演示
 
-运行 `python examples/storage_demo.py`。脚本只使用系统临时目录，并在退出时删除数据库文件。
-两次演示均按 `读 0 → 读 1 → 读 0 → 写 0 → 读 2` 访问页面。
+构建并运行存储测试：
 
-```text
-LRU (capacity=2)
-buffer miss page=0
-buffer miss page=1
-buffer hit page=0
-buffer hit page=0
-buffer miss page=2
-buffer evict page=1 policy=LRU dirty=False
-stats before close: {'read_requests': 4, 'cache_hits': 1, 'cache_misses': 3, 'evictions': 1, 'dirty_writes': 0}
-buffer flush dirty page=0
-buffer miss page=0
-page 0 after reopen: b'updated page 0'
-
-FIFO (capacity=2)
-buffer miss page=0
-buffer miss page=1
-buffer hit page=0
-buffer hit page=0
-buffer miss page=2
-buffer flush dirty page=0
-buffer evict page=0 policy=FIFO dirty=True
-stats before close: {'read_requests': 4, 'cache_hits': 1, 'cache_misses': 3, 'evictions': 1, 'dirty_writes': 1}
-buffer miss page=0
-page 0 after reopen: b'updated page 0'
+```powershell
+cmake --build build-cpp -j 4
+.\build-cpp\test_storage_cpp.exe
 ```
 
-LRU 淘汰页 1；FIFO 淘汰页 0，先将其脏数据写回。两者重新打开文件后均读到
-`updated page 0`。日志中的第二次 `buffer hit page=0` 来自写请求；按当前统计口径，
-`read_requests` 和 `cache_hits` 只统计读请求，故输出分别为 4 和 1。
+也可以让完整数据库输出缓存事件：
+
+```powershell
+.\build-cpp\minidb_cli.exe --db cache-demo.db --buffer-capacity 2 `
+  --replacement-policy LRU --cache-log --file tests\e2e_demo.sql --stats
+```
+
+将 `LRU` 改为 `FIFO` 可比较相同访问序列下的淘汰行为。统计包含
+`read_requests`、`cache_hits`、`cache_misses`、`evictions` 和 `dirty_writes`。
+
+具体文件格式、dirty/pin 语义和错误码见 [存储设计](storage_design.md)。

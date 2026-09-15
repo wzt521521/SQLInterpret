@@ -1,11 +1,12 @@
 # 数据库引擎设计与接口交接
 
-负责人：wzy。实现位于 `src/minidbms/engine/` 和 `src/minidbms/cli/`。
+负责人：wzy。C++ 实现位于 `cpp/include/minidbms/engine/`、`cpp/src/engine/`
+和 `cpp/src/cli/`。
 
 ## 1. 运行链路与模块边界
 
 ```text
-SQL 文本 → zby 的 SQLCompiler → 公共 PlanNode → wzy 的 Executor
+SQL 文本 → zby 的 C++ SQLCompiler → C++ PlanPtr → wzy 的 C++ Executor
                                    ↘ CatalogView ← CatalogManager
                  Executor → StorageEngine / RecordCodec / RowPage
                                       ↓ 页号 + bytes
@@ -14,9 +15,14 @@ SQL 文本 → zby 的 SQLCompiler → 公共 PlanNode → wzy 的 Executor
                                4096 字节数据页
 ```
 
-`Database.execute(sql_text)` 调用 `SQLCompiler.compile_and_execute`，每执行一条语句后再绑定下一条。CREATE 的 Schema 只有在执行成功后才进入正式 Catalog。`Executor` 不重新解析 SQL；`StorageEngine` 不访问文件管理器或 Buffer Pool 内部成员。
+`Database::execute(sql_text)` 直接调用原生 `minisql::Compiler::compile_and_execute`，
+每执行一条语句后再绑定下一条。运行链路不再经过 Python Plan 转换或编译器子进程。
+CREATE 的 Schema 只有在执行成功后才进入正式 Catalog。`Executor` 不重新解析 SQL；
+`StorageEngine` 不访问文件管理器或 Buffer Pool 内部成员。
 
-表名和列名统一为小写。公共 `CatalogView`、`PlanNode`、`Expression`、`ExecutionResult` 和 `StorageManagerProtocol` 未改动。SELECT 返回 `columns` 和 `rows`；INSERT/DELETE 返回 `affected_rows` 与信息；错误统一继承 `DBError`，执行阶段为 `EXECUTION`。
+表名和列名统一为小写。编译器已有的 `CatalogView`、`PlanPtr`、`ExprPtr` 和
+`ExecutionResult` 接口未改动。SELECT 返回 `columns` 和 `rows`；INSERT/DELETE 返回
+`affected_rows` 与信息；执行错误使用原有 `minisql::DBError`。
 
 ## 2. Catalog 固定入口与持久化
 
@@ -64,12 +70,18 @@ Catalog 是唯一正式表结构数据源，保存表名、列顺序/类型以�
 
 ## 5. CLI、错误与关闭
 
-`python -m minidbms --db demo.db` 提供 `MiniDB >` 提示符；支持多语句、跨行输入、`exit`/`quit`、`stats` 命令。输入分帧器只寻找字符串和注释之外的分号，实际词法、语法、语义仍由 zby 编译器完成。`--file` 执行 UTF-8 SQL 文件，`--buffer-capacity`/`--replacement-policy` 控制缓存，`--cache-log` 输出淘汰和脏写日志。CLI 捕获五阶段 `DBError`，一条错误 SQL 不会终止后续语句。`Database` 上下文关闭 `StorageManager`，后者刷新全部脏页。
+`build-cpp/minidb_cli`（Windows 为 `.exe`）提供 `MiniDB >` 提示符；支持多语句、
+跨行输入、`exit`/`quit`、`stats` 命令。输入分帧器只寻找字符串和注释之外的分号，
+实际词法、语法、语义仍由 zby 编译器完成。`--file` 执行 UTF-8 SQL 文件，
+`--buffer-capacity`/`--replacement-policy` 控制缓存，`--cache-log` 输出淘汰和脏写日志。
+一条错误 SQL 不会终止后续语句。C++ RAII 析构和显式 `close()` 都会刷新全部脏页。
 
 典型引擎错误码：`TABLE_EXISTS`、`TABLE_NOT_FOUND`、`CORRUPT_CATALOG`、`CORRUPT_PAGE`、`CORRUPT_RECORD`、`TYPE_MISMATCH`、`VALUE_COUNT_MISMATCH`、`RECORD_TOO_LARGE`、`PAGE_FULL`、`COLUMN_NOT_FOUND`、`INTEGER_OVERFLOW`、`INVALID_PLAN`。zby 的词法/语法/语义错误和 wzt 的存储错误保持各自的原有阶段与错误码。
 
 ## 6. 验证与范围
 
-`tests/test_db.py` 包含真实编译器/Plan 的建表、插入、筛选、投影、删除、跨页、重启、Catalog 扩展、错误清理及 CLI 子进程测试。`examples/e2e_demo.py` 使用临时数据库，在两个独立进程中运行 `tests/e2e_demo.sql` 和重启查询，并展示 Token、AST、语义结果与优化前后 Plan。运行和预期输出见 [README](../README.md) 与 [演示记录](e2e_demo_result.md)。
+`cpp/tests/test_engine.cpp` 覆盖真实编译器/Plan 的建表、插入、筛选、投影、删除、
+跨页、重启和 Catalog 扩展；`tests/test_cpp_runtime.py` 对 C++ CLI、bridge 以及演示库重置做进程级验收。
+运行方式见 [README](../README.md)。
 
 项目基线不包含 UPDATE、JOIN、GROUP BY、索引、事务、WAL、并发控制或崩溃恢复。正常关闭后的持久化与基本执行错误清理是本次验收范围。

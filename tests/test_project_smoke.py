@@ -3,13 +3,6 @@
 from minidbms.common.errors import DBError, ErrorStage
 from minidbms.common.plans import CreateTablePlan
 from minidbms.common.types import ColumnDef, DataType, ExecutionResult, SourceLocation
-from minidbms.storage.page import PAGE_SIZE
-
-
-def test_page_size_contract() -> None:
-    assert PAGE_SIZE == 4096
-
-
 def test_create_table_plan_contract() -> None:
     columns = (ColumnDef("id", DataType.INT), ColumnDef("name", DataType.VARCHAR))
     plan = CreateTablePlan("student", columns)

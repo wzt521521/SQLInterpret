@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "minidbms"
-version = "0.1.0"
-description = "A teaching-oriented MiniDBMS for the Large-Scale Platform Software Design practicum."
+version = "0.2.0"
+description = "A C++17 teaching-oriented MiniDBMS with a thin Python web adapter."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = []
@@ -14,7 +14,8 @@ dependencies = []
 dev = ["pytest>=8.0", "pytest-cov>=5.0"]
 
 [project.scripts]
-minidb = "minidbms.cli.main:main"
+minidb = "minidbms.native_cli:main"
+minidb-web = "minidbms.web.server:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -22,6 +23,7 @@ exclude = ["minidbms.sql_compiler.native*"]
 
 [tool.setuptools.package-data]
 "minidbms.sql_compiler" = ["native/CMakeLists.txt", "native/build.ps1", "native/app/*.cc", "native/app/*.h", "native/include/minisql/*.h", "native/src/*.cc"]
+"minidbms.web" = ["static/*.html", "static/*.css", "static/*.js", "sql_examples/*.sql"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -115,6 +115,6 @@ C++ 以 `-Wall -Wextra -Wpedantic -Werror` 构建通过，全部 64 项 pytest �
 Python wheel 构建及内容检查通过，包含 23 个原生源码/构建文件，不包含平台二进制。
 Linux/Python 3.11 的自动构建已加入 CI，结果以推送后 GitHub Actions 为准。
 
-zby 的编译器功能、测试与文档可独立验收。仓库当前 wzt/wzy 的存储、引擎、正式 Catalog
-仍为骨架；本次验证使用只读内存 Catalog 和接收公共 Plan 的假 Executor，
-不能据此宣称磁盘持久化、正式执行器或小组端到端验收已经完成。
+上面的 64 项结果是 zby 模块最初独立验收时的历史基线。2026-09-15 完成核心 C++
+迁移后，编译器源码保持不变，由 `cpp/src/engine/` 中的正式 Catalog 和 Executor 直接
+实现其 `CatalogView`、`Executor` 接口；磁盘持久化和端到端结果由顶层 CTest 单独验收。

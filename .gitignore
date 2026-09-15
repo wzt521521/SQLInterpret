@@ -9,6 +9,8 @@ __pycache__/
 htmlcov/
 dist/
 build/
+build-cpp/
 *.db
+*.db.backup-*
 *.dat
 *.log

@@ -1,6 +1,6 @@
-"""Run the project CLI with python -m minidbms."""
+"""Run the C++ project CLI with python -m minidbms."""
 
-from minidbms.cli.main import main
+from minidbms.native_cli import main
 
 
 if __name__ == "__main__":

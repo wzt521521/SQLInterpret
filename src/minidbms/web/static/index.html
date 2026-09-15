@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MiniDBMS 本地 SQL 实验台">
+  <title>MiniDBMS Studio</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="MiniDBMS Studio 首页">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+        <span>
+          <strong>MiniDBMS</strong>
+          <small>SQL 实验台</small>
+        </span>
+      </a>
+      <div class="runtime-badge" id="runtimeBadge">
+        <span class="pulse"></span>
+        <span id="runtimeText">正在连接数据库</span>
+      </div>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="pageTitle">
+        <div>
+          <p class="eyebrow">LOCAL DATABASE WORKBENCH</p>
+          <h1 id="pageTitle">从 SQL 到磁盘页，<br><em>每一步都看得见。</em></h1>
+        </div>
+        <p class="intro-copy">输入 SQL，直接调用项目中的 C++ 编译器、执行引擎和页式存储。结果、执行计划与缓存状态会在同一页面更新。</p>
+      </section>
+
+      <section class="workspace">
+        <article class="editor-card panel">
+          <div class="panel-heading">
+            <div>
+              <span class="section-number">01</span>
+              <h2>SQL 编辑器</h2>
+            </div>
+            <span class="shortcut">快捷键：Ctrl / ⌘ + Enter</span>
+          </div>
+
+          <div class="examples" aria-label="SQL 示例">
+            <span class="toolbar-label">快速示例</span>
+            <button type="button" class="example-chip active" data-example="workflow">完整流程</button>
+            <button type="button" class="example-chip" data-example="filter">条件与优化</button>
+            <button type="button" class="example-chip" data-example="error">错误定位</button>
+          </div>
+
+          <div class="file-toolbar">
+            <div class="sample-picker">
+              <label for="sampleSelect">测试 SQL 文件</label>
+              <select id="sampleSelect">
+                <option value="">请选择由浅入深的测试文件</option>
+              </select>
+              <button type="button" class="button secondary" id="loadSampleButton" disabled>加载并预览</button>
+            </div>
+            <span class="or-text">或</span>
+            <input class="sr-only" type="file" id="localFileInput" accept=".sql,text/plain">
+            <button type="button" class="button secondary" id="localFileButton">打开本地 .sql</button>
+            <span class="selected-file" id="selectedFile">尚未选择文件</span>
+          </div>
+
+          <label class="sr-only" for="sqlEditor">SQL 输入</label>
+          <div class="editor-wrap">
+            <div class="line-gutter" aria-hidden="true" id="lineGutter">1</div>
+            <textarea id="sqlEditor" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+          </div>
+
+          <div class="editor-actions">
+            <p id="editorHint">示例会使用唯一表名，可以重复运行。</p>
+            <div>
+              <button type="button" class="button ghost" id="clearButton">清空编辑器</button>
+              <button type="button" class="button primary" id="runButton">
+                <span id="runLabel">执行 SQL</span>
+                <span class="button-arrow" aria-hidden="true">↗</span>
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <aside class="side-stack">
+          <section class="panel overview-card">
+            <div class="panel-heading compact">
+              <div>
+                <span class="section-number">02</span>
+                <h2>数据库概览</h2>
+              </div>
+              <div class="database-actions">
+                <button type="button" class="database-reset-button" id="resetDatabaseButton" title="清空当前演示数据库并自动备份">
+                  <span id="resetDatabaseLabel">清空数据库</span>
+                </button>
+                <button type="button" class="icon-button" id="refreshButton" title="刷新状态" aria-label="刷新数据库状态">↻</button>
+              </div>
+            </div>
+            <dl class="database-meta">
+              <div><dt>文件</dt><dd id="databaseName">—</dd></div>
+              <div><dt>缓存策略</dt><dd id="policyValue">—</dd></div>
+              <div><dt>缓存容量</dt><dd id="capacityValue">—</dd></div>
+            </dl>
+            <div class="table-heading">
+              <span>数据表</span>
+              <b id="tableCount">0</b>
+            </div>
+            <div class="table-list" id="tableList">
+              <div class="empty-mini">暂无数据表，先运行完整流程。</div>
+            </div>
+          </section>
+
+          <section class="stats-grid" aria-label="缓存统计">
+            <article class="stat-card accent-dark"><span>读取请求</span><strong id="readRequests">0</strong></article>
+            <article class="stat-card"><span>缓存命中</span><strong id="cacheHits">0</strong></article>
+            <article class="stat-card"><span>页面淘汰</span><strong id="evictions">0</strong></article>
+            <article class="stat-card accent-warm"><span>脏页写回</span><strong id="dirtyWrites">0</strong></article>
+          </section>
+        </aside>
+      </section>
+
+      <section class="results-section panel" aria-live="polite">
+        <div class="panel-heading results-heading">
+          <div>
+            <span class="section-number">03</span>
+            <h2>执行结果</h2>
+          </div>
+          <div class="result-meta">
+            <span id="durationLabel">等待执行</span>
+            <span id="resultStatus" class="result-status idle">READY</span>
+          </div>
+        </div>
+        <div id="errorBox" class="error-box" hidden></div>
+        <div class="result-filters" id="resultFilters" hidden>
+          <span class="filter-label">结果分类</span>
+          <button type="button" class="filter-button active" data-filter="all">全部 <b>0</b></button>
+          <button type="button" class="filter-button" data-filter="query">查询结果 <b>0</b></button>
+          <button type="button" class="filter-button" data-filter="mutation">数据变更 <b>0</b></button>
+          <button type="button" class="filter-button" data-filter="schema">结构操作 <b>0</b></button>
+        </div>
+        <div id="results" class="results-content">
+          <div class="empty-state">
+            <span class="empty-symbol">⌁</span>
+            <h3>准备就绪</h3>
+            <p>选择一个示例或输入 SQL，然后点击“执行 SQL”。</p>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>MiniDBMS Studio · 教学型数据库系统</span>
+      <span>4096 B PAGE · C++17 COMPILER · PYTHON ENGINE</span>
+    </footer>
+  </div>
+  <script src="/assets/app.js" defer></script>
+</body>
+</html>
